@@ -1,4 +1,4 @@
-version: '3.8'
+
 
 services:
   web:
@@ -8,6 +8,6 @@ services:
         # This passes the API_KEY from your .env file into the build process
         API_KEY: ${API_KEY}
     ports:
-      - "8080:80"
+      - "7912:80"
     restart: unless-stopped
     container_name: ai-hairstyle-app

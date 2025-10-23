@@ -214,7 +214,8 @@ const App: React.FC = () => {
   const renderInitialState = () => (
     <div className="flex flex-col items-center justify-center h-screen bg-gray-900 p-4">
       <div className="text-center mb-12">
-        <h1 className="text-5xl font-extrabold text-white mb-2 tracking-tight">AI Hairstyle Try-On</h1>
+        <h1 className="text-5xl font-extrabold text-white mb-2 tracking-tight">Welcome to HairDid.store</h1>
+        <h2 className="text-4xl font-extrabold text-white mb-2 tracking-tight">Use our AI Hairstyle Try-On</h2>
         <p className="text-lg text-gray-400">Find your next look in seconds. Upload a photo or use your camera.</p>
       </div>
       <div className="flex flex-col md:flex-row gap-6">

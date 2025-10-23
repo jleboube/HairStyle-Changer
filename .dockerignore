@@ -1,1 +1,9 @@
-��^�j�W�v+-���$z���hrG���&��)�
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+.env.local
+README.md
+.DS_Store
+dist
