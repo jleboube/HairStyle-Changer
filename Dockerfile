@@ -1,5 +1,4 @@
-# Build stage
-FROM node:20-alpine AS builder
+FROM node:20-alpine
 
 # Set working directory
 WORKDIR /app
@@ -8,31 +7,25 @@ WORKDIR /app
 ARG API_KEY
 ENV API_KEY=${API_KEY}
 
+# Install nginx
+RUN apk add --no-cache nginx
+
 # Copy package files
 COPY package*.json ./
 
 # Install dependencies
 RUN npm install
 
-# Copy source code
-COPY . .
-
-# Build the application
-RUN npm run build
-
-# Production stage
-FROM nginx:alpine
-
-# Copy built files from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html/dist
-COPY --from=builder /app/index.html /usr/share/nginx/html/
-COPY --from=builder /app/favicon.svg /usr/share/nginx/html/
-
 # Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/http.d/default.conf
+
+# Create directory for nginx pid
+RUN mkdir -p /run/nginx
 
 # Expose port 80
 EXPOSE 80
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start script that runs both esbuild watch and nginx
+CMD sh -c "npm run build && \
+    (npx esbuild index.tsx --bundle --outfile=dist/bundle.js --define:process.env.API_KEY='\"'$API_KEY'\"' --loader:.tsx=tsx --jsx=automatic --watch=forever &) && \
+    nginx -g 'daemon off;'"
