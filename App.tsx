@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Hairstyle } from './types';
 import { HAIRSTYLES } from './constants';
-import { applyHairstyle, ViewAngle, generateRandomHairstylePrompt } from './services/geminiService';
+import { applyHairstyle, ViewAngle, generateRandomHairstylePrompt, suggestHairstyle } from './services/geminiService';
 import CameraCapture from './components/CameraCapture';
 import HairstyleSelector from './components/HairstyleSelector';
 import ViewSelector from './components/ViewSelector';
@@ -9,6 +9,7 @@ import Loader from './components/Loader';
 import { CameraIcon } from './components/icons/CameraIcon';
 import { UploadIcon } from './components/icons/UploadIcon';
 import { ResetIcon } from './components/icons/ResetIcon';
+import AIStylist from './components/AIStylist';
 
 type AppState = 'initial' | 'capture' | 'editing';
 
@@ -25,6 +26,8 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewAngle>('front');
   const [error, setError] = useState<string | null>(null);
   const [isGeneratingRandom, setIsGeneratingRandom] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState<{ prompt: string; reason: string; } | null>(null);
+  const [isSuggesting, setIsSuggesting] = useState(false);
 
   // State to cache generated images: { [hairstyleId]: { front: '...', side: '...' } }
   const [cachedImages, setCachedImages] = useState<Record<string, Partial<Record<ViewAngle, string>>>>({});
@@ -72,6 +75,7 @@ const App: React.FC = () => {
 
         try {
           const newImage = await applyHairstyle(originalImage, hairstyle.promptDescription, view);
+          
           // Cache the resulting image
           setCachedImages(prev => ({
             ...prev,
@@ -121,6 +125,36 @@ const App: React.FC = () => {
     }
   }, [handleHairstyleSelect]);
 
+  const handleSuggestHairstyle = useCallback(async () => {
+    if (!originalImage) return;
+    setError(null);
+    setAiSuggestion(null);
+    setIsSuggesting(true);
+    try {
+        const suggestion = await suggestHairstyle(originalImage);
+        setAiSuggestion(suggestion);
+    } catch (err) {
+        console.error("Failed to get AI suggestion:", err);
+        setError("The AI Stylist is busy. Please try again later.");
+    } finally {
+        setIsSuggesting(false);
+    }
+  }, [originalImage]);
+
+  const handleTryOnSuggestion = useCallback(() => {
+    if (!aiSuggestion) return;
+    
+    const suggestedStyle: Hairstyle = {
+        id: `suggested-${Date.now()}`,
+        name: 'AI Suggestion',
+        promptDescription: aiSuggestion.prompt,
+        imageUrl: createImageUrl(aiSuggestion.prompt), // For a potential thumbnail
+        gender: 'unisex',
+    };
+    handleHairstyleSelect(suggestedStyle);
+  }, [aiSuggestion, handleHairstyleSelect]);
+
+
   const handleViewSelect = useCallback((view: ViewAngle) => {
     if (!selectedHairstyle) return;
     // Simply update the current view. The rendering logic will find the cached image or show a loader.
@@ -137,6 +171,44 @@ const App: React.FC = () => {
     setCachedImages({});
     setLoadingStates({});
     setIsGeneratingRandom(false);
+    setAiSuggestion(null);
+    setIsSuggesting(false);
+  };
+
+  const handleFindSalon = () => {
+    if (!navigator.geolocation) {
+        setError("Geolocation is not supported by your browser.");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const { latitude, longitude } = position.coords;
+            const mapsUrl = `https://www.google.com/maps/search/hair+salon/@${latitude},${longitude},14z`;
+            window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+        },
+        () => {
+            setError("Unable to retrieve your location. Please enable location services in your browser's settings.");
+        }
+    );
+  };
+
+  const handleBookOnBooksy = () => {
+    if (!navigator.geolocation) {
+        setError("Geolocation is not supported by your browser.");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const { latitude, longitude } = position.coords;
+            const booksyUrl = `https://booksy.com/en-us/s/hair-salon?geopicker_lat=${latitude}&geopicker_lng=${longitude}`;
+            window.open(booksyUrl, '_blank', 'noopener,noreferrer');
+        },
+        () => {
+            setError("Unable to retrieve your location. Please enable location services in your browser's settings.");
+        }
+    );
   };
 
   const renderInitialState = () => (
@@ -173,6 +245,7 @@ const App: React.FC = () => {
     const imageToShow = currentHairstyleId ? cachedImages[currentHairstyleId]?.[currentView] : null;
     const isCurrentViewLoading = currentLoadingStates?.[currentView] === true;
     const isAnyViewLoadingForSelected = Object.values(currentLoadingStates ?? {}).some(Boolean);
+    const areAllViewsGeneratedForSelectedStyle = !!selectedHairstyle && ['front', 'side', 'back'].every(view => cachedViewsForSelectedStyle?.[view as ViewAngle]);
 
     return (
       <div className="min-h-screen bg-gray-800 flex flex-col items-center p-4 md:p-8">
@@ -210,10 +283,20 @@ const App: React.FC = () => {
                 onSelectView={handleViewSelect}
                 loadingStates={currentLoadingStates}
                 cachedViews={cachedViewsForSelectedStyle}
+                areAllViewsGenerated={areAllViewsGeneratedForSelectedStyle}
+                onFindSalon={handleFindSalon}
+                onBookOnBooksy={handleBookOnBooksy}
               />
             )}
           </div>
         </div>
+        <AIStylist
+          onSuggest={handleSuggestHairstyle}
+          isSuggesting={isSuggesting}
+          suggestion={aiSuggestion}
+          onTrySuggestion={handleTryOnSuggestion}
+          isDisabled={isAnyViewLoadingForSelected || isGeneratingRandom}
+        />
         <div className="w-full max-w-6xl mt-8">
           <HairstyleSelector
             hairstyles={HAIRSTYLES}
@@ -221,23 +304,31 @@ const App: React.FC = () => {
             onSelect={handleHairstyleSelect}
             onGenerateRandom={handleGenerateRandom}
             isGeneratingRandom={isGeneratingRandom}
-            isDisabled={isAnyViewLoadingForSelected || isGeneratingRandom}
+            isDisabled={isAnyViewLoadingForSelected || isGeneratingRandom || isSuggesting}
           />
         </div>
       </div>
     );
   }
 
-  switch (appState) {
-    case 'initial':
-      return renderInitialState();
-    case 'capture':
-      return renderCaptureState();
-    case 'editing':
-      return renderEditingState();
-    default:
-      return renderInitialState();
-  }
+  const renderContent = () => {
+    switch (appState) {
+      case 'initial':
+        return renderInitialState();
+      case 'capture':
+        return renderCaptureState();
+      case 'editing':
+        return renderEditingState();
+      default:
+        return renderInitialState();
+    }
+  };
+
+  return (
+    <>
+      {renderContent()}
+    </>
+  );
 };
 
 export default App;
