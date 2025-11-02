@@ -2,6 +2,16 @@
 
 This is a web application that allows users to take a picture with their camera or upload a photo to try on various hairstyles and colors using the Gemini AI model. The application is containerized using Docker and orchestrated with Docker Compose for easy setup and deployment.
 
+[![Docker](https://img.shields.io/badge/Docker-Friendly-2496ED?style=for-the-badge&logo=docker)](https://www.docker.com/)
+
+[![GitHub stars](https://img.shields.io/github/stars/jleboube/HairStyle-Changer?style=social)](https://github.com/jleboube/HairStyle-Changer/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/jleboube/HairStyle-Changer?style=social)](https://github.com/jleboube/HairStyle-Changer/network/members)
+[![GitHub issues](https://img.shields.io/github/issues/jleboube/HairStyle-Changer)](https://github.com/jleboube/HairStyle-Changer/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/jleboube/HairStyle-Changer)](https://github.com/jleboube/HairStyle-Changer/pulls)
+[![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CCBY--NC--SA4.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/muscl3n3rd)
+
 ## Prerequisites
 
 Before you begin, ensure you have the following installed on your system:
